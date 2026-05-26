@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Merkury Smart account",
+        "description": "Sign in with the same email and password you use in the Merkury Smart app. This integration uses the Pepper OS cloud API that powers Merkury Smart (and the Geeni app). No APK key extraction or Tuya developer account is required.",
+        "data": {
+          "username": "Email address",
+          "password": "Password",
+          "brand": "Pepper brand slug (leave geeni for Merkury Smart)",
+          "environment": "Pepper cloud environment"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the Pepper cloud. Check your network and environment setting.",
+      "invalid_auth": "Login failed. Check your Merkury Smart email and password.",
+      "mfa_required": "This account requires MFA. Disable MFA in Merkury Smart temporarily, or complete MFA in the app first.",
+      "no_devices": "Login succeeded but no devices were found on this account.",
+      "unknown": "Unexpected error during setup."
+    },
+    "abort": {
+      "already_configured": "This account is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Re-sync devices",
+        "description": "Fetch the current device list from your Merkury Smart account."
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+
+# Secrets and local env
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+secrets.yaml
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.cursor/
+*.code-workspace
+
+# MITM / APK reverse-engineering (local dev only)
+tools/apk-mitm-work/
+**/*.apk
+**/*.apkm
+**/*.xapk
+**/index.android.bundle
+
+# Packet captures (contain decrypted tokens)
+*.pcap
+PCAPdroid*.txt
+**/PCAPdroid*.txt
+
+# Logs
+*.log
