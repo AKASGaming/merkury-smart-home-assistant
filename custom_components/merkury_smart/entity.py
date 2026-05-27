@@ -38,3 +38,8 @@ class MerkuryEntity(CoordinatorEntity[MerkuryCoordinator]):
     @property
     def power_on(self) -> bool | None:
         return self.device_state.get("power_on")
+
+    async def async_set_power(self, on: bool) -> None:
+        """Turn device on/off with optimistic coordinator update."""
+
+        await self.coordinator.set_power(self._device_id, on)

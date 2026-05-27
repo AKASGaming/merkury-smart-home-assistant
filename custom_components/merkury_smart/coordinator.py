@@ -6,7 +6,7 @@ from datetime import timedelta
 import logging
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .cloud import MerkuryCloudClient
@@ -45,13 +45,36 @@ class MerkuryCoordinator(DataUpdateCoordinator[dict[str, dict]]):
             _LOGGER.debug("Update failed: %s", err)
             raise UpdateFailed(str(err)) from err
 
+    @callback
+    def _apply_power_state(self, device_id: str, on: bool) -> None:
+        """Push a power state change to coordinator data and refresh entities."""
+
+        data = dict(self.data or {})
+        state = dict(data.get(device_id, {}))
+        state["power_on"] = on
+        data[device_id] = state
+        self.async_set_updated_data(data)
+
     async def set_power(self, device_id: str, on: bool) -> None:
+        """Set device power with optimistic UI update, then reconcile via cloud."""
+
         _LOGGER.debug("set_power device_id=%s on=%s", device_id, on)
+        previous_state = (
+            dict(self.data[device_id]) if self.data and device_id in self.data else {}
+        )
+
+        self._apply_power_state(device_id, on)
         try:
             await self.client.set_power(device_id, on)
         except Exception:
             _LOGGER.exception("set_power failed for %s", device_id)
+            data = dict(self.data or {})
+            data[device_id] = previous_state
+            self.async_set_updated_data(data)
             raise
+
+        # Reconcile with cloud without blocking the UI toggle.
+        self.hass.async_create_task(self.async_request_refresh())
 
     async def async_shutdown(self) -> None:
         await self.client.close()

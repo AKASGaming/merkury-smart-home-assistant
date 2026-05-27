@@ -105,9 +105,7 @@ class MerkuryLight(MerkuryEntity, LightEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         # Brightness/color control via settings API is not implemented yet.
-        await self.coordinator.set_power(self._device_id, True)
-        await self.coordinator.async_request_refresh()
+        await self.async_set_power(True)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await self.coordinator.set_power(self._device_id, False)
-        await self.coordinator.async_request_refresh()
+        await self.async_set_power(False)
