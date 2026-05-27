@@ -29,7 +29,6 @@ class MerkuryEntity(CoordinatorEntity[MerkuryCoordinator]):
             name=name,
             manufacturer="Merkury Innovations",
             model=model,
-            via_device=(DOMAIN, coordinator.entry.entry_id),
         )
 
     @property
