@@ -15,6 +15,7 @@
     "error": {
       "cannot_connect": "Could not reach the Pepper cloud. Check your network and environment setting.",
       "invalid_auth": "Login failed. Check your Merkury Smart email and password.",
+      "missing_http2": "HTTP/2 support is missing. Restart Home Assistant so httpx[http2] can install, then try again.",
       "mfa_required": "This account requires MFA. Disable MFA in Merkury Smart temporarily, or complete MFA in the app first.",
       "no_devices": "Login succeeded but no devices were found on this account.",
       "unknown": "Unexpected error during setup."

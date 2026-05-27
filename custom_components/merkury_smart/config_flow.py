@@ -30,7 +30,12 @@ from .const import (
     DOMAIN,
     ENVIRONMENTS,
 )
-from .pepper_cloud import PepperAuthError, PepperCloudError, PepperMfaRequiredError
+from .pepper_cloud import (
+    PepperApiError,
+    PepperAuthError,
+    PepperCloudError,
+    PepperMfaRequiredError,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -85,9 +90,18 @@ class MerkuryConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "mfa_required"
             except PepperAuthError:
                 errors["base"] = "invalid_auth"
+            except PepperApiError as err:
+                _LOGGER.error("Pepper API error during setup: %s", err)
+                errors["base"] = "cannot_connect"
             except PepperCloudError as err:
                 _LOGGER.error("Pepper cloud setup failed: %s", err)
                 errors["base"] = "cannot_connect"
+            except ImportError as err:
+                _LOGGER.exception("Missing dependency for Merkury Smart")
+                if "h2" in str(err).lower() or "http2" in str(err).lower():
+                    errors["base"] = "missing_http2"
+                else:
+                    errors["base"] = "unknown"
             except Exception:  # noqa: BLE001
                 _LOGGER.exception("Unexpected setup error")
                 errors["base"] = "unknown"

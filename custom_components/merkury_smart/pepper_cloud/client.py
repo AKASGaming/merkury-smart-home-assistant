@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import json
 import logging
 from dataclasses import dataclass
 from typing import Any
@@ -11,11 +12,11 @@ import httpx
 from yarl import URL
 
 from ..const import CMD_POWER_OFF, CMD_POWER_ON, DEFAULT_BRAND
-from .transport import create_http_client
 from .auth import apply_login_response, extract_lr_token
 from .devices import build_discovered_entry, command_device_id, normalize_device_state
 from .exceptions import PepperApiError, PepperAuthError, PepperCloudError, PepperSessionError
 from .signer import ensure_trailing_slash, sign_request
+from .transport import create_http_client
 from .urls import DEFAULT_HOSTS
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ class PepperCloudClient:
         brand: str = DEFAULT_BRAND,
         environment: str = "production",
         base_url: str | None = None,
-        session: aiohttp.ClientSession | None = None,
+        client: httpx.AsyncClient | None = None,
     ) -> None:
         if environment not in ENVIRONMENT_HOSTS and not base_url:
             raise ValueError(f"Unsupported environment: {environment}")
@@ -50,23 +51,21 @@ class PepperCloudClient:
         self.environment = environment
         self._custom_base_url = base_url is not None
         self.base_url = (base_url or ENVIRONMENT_HOSTS[environment]).rstrip("/")
-        self._session = session
-        self._owns_session = session is None
+        self._client = client
+        self._owns_client = client is None
         self._pepper_token: str | None = None
         self._lr_token: str | None = None
         self._aws: AwsSession | None = None
 
     async def close(self) -> None:
-        if self._owns_session and self._session and not self._session.closed:
-            await self._session.close()
+        if self._owns_client and self._client and not self._client.is_closed:
+            await self._client.aclose()
 
-    async def _get_session(self) -> aiohttp.ClientSession:
-        if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=30)
-            )
-            self._owns_session = True
-        return self._session
+    async def _get_client(self) -> httpx.AsyncClient:
+        if self._client is None or self._client.is_closed:
+            self._client = create_http_client()
+            self._owns_client = True
+        return self._client
 
     @staticmethod
     def _basic_auth(brand: str, username: str, password: str) -> str:
@@ -98,22 +97,22 @@ class PepperCloudClient:
     async def _fetch_login_by_email(
         self, base_url: str, email: str, password: str
     ) -> dict[str, Any]:
-        session = await self._get_session()
+        client = await self._get_client()
         url = f"{base_url.rstrip('/')}/authentication/byEmail"
         headers = await self._auth_headers()
         headers["Authorization"] = self._basic_auth(self.brand, email, password)
 
-        async with session.post(url, headers=headers, data=b"null") as response:
-            body = await response.text()
-            if response.status == 401:
-                raise PepperAuthError("Invalid email or password")
-            if response.status >= 400:
-                raise PepperApiError(response.status, body or "Authentication failed")
+        response = await client.post(url, headers=headers, content=b"null")
+        body = response.text
+        if response.status_code == 401:
+            raise PepperAuthError("Invalid email or password")
+        if response.status_code >= 400:
+            raise PepperApiError(response.status_code, body or "Authentication failed")
 
-            data = await response.json(content_type=None)
-            if not isinstance(data, dict):
-                raise PepperCloudError("Unexpected authentication response")
-            return data
+        data = response.json()
+        if not isinstance(data, dict):
+            raise PepperCloudError("Unexpected authentication response")
+        return data
 
     async def _refresh_session_by_token(
         self,
@@ -129,31 +128,31 @@ class PepperCloudClient:
                 raise PepperCloudError("authenticateByToken requires lrToken")
             return
 
-        session = await self._get_session()
+        client = await self._get_client()
         url = f"{base_url.rstrip('/')}/authentication/byToken"
         token = base64.b64encode(f"{self.brand}:{lr_token}".encode()).decode("ascii")
         headers = await self._auth_headers()
         headers["Authorization"] = f"Basic {token}"
 
-        async with session.post(url, headers=headers, data=b"null") as response:
-            body = await response.text()
-            if response.status >= 400:
-                if required:
-                    raise PepperApiError(
-                        response.status,
-                        body or "authenticateByToken failed",
-                    )
-                _LOGGER.debug(
-                    "authenticateByToken returned HTTP %s (continuing with byEmail session)",
-                    response.status,
+        response = await client.post(url, headers=headers, content=b"null")
+        body = response.text
+        if response.status_code >= 400:
+            if required:
+                raise PepperApiError(
+                    response.status_code,
+                    body or "authenticateByToken failed",
                 )
-                return
+            _LOGGER.debug(
+                "authenticateByToken returned HTTP %s (continuing with byEmail session)",
+                response.status_code,
+            )
+            return
 
-            data = await response.json(content_type=None)
-            if isinstance(data, dict):
-                self._apply_login_response(data)
-            elif required:
-                raise PepperCloudError("authenticateByToken returned an unexpected payload")
+        data = response.json()
+        if isinstance(data, dict):
+            self._apply_login_response(data)
+        elif required:
+            raise PepperCloudError("authenticateByToken returned an unexpected payload")
 
     def _apply_login_response(self, data: dict[str, Any]) -> None:
         session = apply_login_response(data)
@@ -189,8 +188,6 @@ class PepperCloudClient:
             "peppertoken": self._pepper_token,
         }
         if json_body is not None:
-            import json
-
             body = json.dumps(json_body).encode("utf-8")
             headers["Content-Length"] = str(len(body))
 

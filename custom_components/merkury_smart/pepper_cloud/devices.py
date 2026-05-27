@@ -41,8 +41,12 @@ def command_device_id(device: dict[str, Any]) -> str:
     )
 
 
+def _device_type(device: dict[str, Any]) -> str:
+    return str(device.get("deviceType") or device.get("device_type") or "")
+
+
 def guess_device_class(device: dict[str, Any]) -> str:
-    device_type = str(device.get("deviceType") or device.get("device_type") or "").lower()
+    device_type = _device_type(device).lower()
     model = str(device.get("model") or "").lower()
 
     if device.get("light"):
@@ -102,7 +106,7 @@ def normalize_device_state(device: dict[str, Any]) -> dict[str, Any]:
     return {
         "name": device.get("name"),
         "model": device.get("model"),
-        "device_type": device.get("deviceType"),
+        "device_type": _device_type(device) or None,
         "provider": device.get("provider"),
         "online": str(device.get("status", "")).lower() not in {"offline", "disconnected"},
         "power_on": power,
@@ -119,7 +123,7 @@ def build_discovered_entry(device: dict[str, Any]) -> dict[str, Any]:
         "name": device.get("name") or dev_id,
         "device_class": guess_device_class(device),
         "model": device.get("model"),
-        "device_type": device.get("deviceType"),
+        "device_type": _device_type(device) or None,
         "provider": device.get("provider"),
         "external_device_id": device.get("deviceId"),
     }
