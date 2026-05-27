@@ -650,8 +650,18 @@ def main() -> int:
             print(f"- {entry['name']} ({entry['device_id']})")
             print(
                 f"  class={entry['device_class']} model={entry.get('model')} "
-                f"provider={entry.get('provider')}"
+                f"provider={entry.get('provider')} status={entry.get('cloud_status')}"
             )
+            if entry.get("firmware_version"):
+                print(f"  firmware={entry['firmware_version']}")
+            if entry.get("wifi_network"):
+                print(f"  wifi={entry['wifi_network']}")
+            if entry.get("timezone"):
+                print(f"  timezone={entry['timezone']}")
+            if entry.get("last_paired_at"):
+                print(f"  last_paired_at={entry['last_paired_at']}")
+            if entry.get("external_device_id"):
+                print(f"  external_id={entry['external_device_id']}")
             print(
                 "  state="
                 + json.dumps(

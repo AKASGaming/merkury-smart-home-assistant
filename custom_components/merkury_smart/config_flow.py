@@ -16,17 +16,22 @@ from .cloud import MerkuryCloudClient
 from .helpers import get_entry_devices
 from .const import (
     CONF_BRAND,
+    CONF_CLOUD_STATUS,
     CONF_DEVICE_CLASS,
     CONF_DEVICE_ID,
     CONF_DEVICES,
     CONF_DEVICE_TYPE,
     CONF_ENVIRONMENT,
     CONF_EXTERNAL_DEVICE_ID,
+    CONF_FIRMWARE_VERSION,
+    CONF_LAST_PAIRED_AT,
     CONF_MODEL,
     CONF_NAME,
     CONF_PASSWORD,
     CONF_PROVIDER,
+    CONF_TIMEZONE,
     CONF_USERNAME,
+    CONF_WIFI_NETWORK,
     DEFAULT_BRAND,
     DOMAIN,
     ENVIRONMENTS,
@@ -39,6 +44,25 @@ from .pepper_cloud import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _device_entry_from_discovered(item: dict[str, Any]) -> dict[str, Any]:
+    """Map a Pepper discovery record into config-entry device storage."""
+
+    return {
+        CONF_DEVICE_ID: item["device_id"],
+        CONF_NAME: item["name"],
+        CONF_DEVICE_CLASS: item["device_class"],
+        CONF_MODEL: item.get("model"),
+        CONF_DEVICE_TYPE: item.get("device_type"),
+        CONF_PROVIDER: item.get("provider"),
+        CONF_EXTERNAL_DEVICE_ID: item.get("external_device_id"),
+        CONF_FIRMWARE_VERSION: item.get("firmware_version"),
+        CONF_WIFI_NETWORK: item.get("wifi_network"),
+        CONF_TIMEZONE: item.get("timezone"),
+        CONF_LAST_PAIRED_AT: item.get("last_paired_at"),
+        CONF_CLOUD_STATUS: item.get("cloud_status"),
+    }
 
 
 def _user_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
@@ -122,18 +146,7 @@ class MerkuryConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     def _create_entry(self) -> FlowResult:
-        devices = [
-            {
-                CONF_DEVICE_ID: item["device_id"],
-                CONF_NAME: item["name"],
-                CONF_DEVICE_CLASS: item["device_class"],
-                CONF_MODEL: item.get("model"),
-                CONF_DEVICE_TYPE: item.get("device_type"),
-                CONF_PROVIDER: item.get("provider"),
-                CONF_EXTERNAL_DEVICE_ID: item.get("external_device_id"),
-            }
-            for item in self._discovered
-        ]
+        devices = [_device_entry_from_discovered(item) for item in self._discovered]
 
         return self.async_create_entry(
             title=f"Merkury Smart ({self._account[CONF_USERNAME]})",
@@ -171,18 +184,7 @@ class MerkuryOptionsFlowHandler(config_entries.OptionsFlow):
             finally:
                 await client.close()
 
-            devices = [
-                {
-                    CONF_DEVICE_ID: item["device_id"],
-                    CONF_NAME: item["name"],
-                    CONF_DEVICE_CLASS: item["device_class"],
-                    CONF_MODEL: item.get("model"),
-                    CONF_DEVICE_TYPE: item.get("device_type"),
-                    CONF_PROVIDER: item.get("provider"),
-                    CONF_EXTERNAL_DEVICE_ID: item.get("external_device_id"),
-                }
-                for item in discovered
-            ]
+            devices = [_device_entry_from_discovered(item) for item in discovered]
             return self.async_create_entry(title="", data={CONF_DEVICES: devices})
 
         return self.async_show_form(

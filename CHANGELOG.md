@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-05-27
+
+### Added
+
+- Device firmware version (`sw_version` in Home Assistant) from Pepper `firmware.version`.
+- Wi-Fi network name, timezone, last paired time, cloud status, and external device id from `GET /account/devices/`.
+- Entity attributes and config-entry storage for the new metadata; CLI test tool prints the extra fields.
+- API docs for the additional device payload fields.
+
 ## [0.4.1] - 2026-05-27
 
 ### Changed

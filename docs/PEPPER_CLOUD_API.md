@@ -86,9 +86,14 @@ GET /account/devices/
 Returns `PepperAccountDevice` objects with fields such as:
 
 - `pepperDeviceId` — id used for commands
-- `deviceId` — external / Tuya id
-- `name`, `model`, `deviceType`, `provider`
-- `powerStateOn`, `light`, `switches`, `status`
+- `deviceId` — external id (e.g. `pso-d0ef76b4bfbc`); shown as device serial in HA
+- `name`, `model`, `device_type`, `provider`
+- `status` — cloud link state (e.g. `ATTACHED`)
+- `firmware.version` — device firmware (e.g. `3.0.0.020`); mapped to HA `sw_version`
+- `wifi.wifiNetworkName` — SSID the device joined during pairing
+- `timeZone` — device timezone string (e.g. `CST6CDT`)
+- `lastPairedAt` — ISO timestamp of last successful pairing
+- `powerStateOn`, `light`, `switches`
 
 ## Control (plugs and lights)
 

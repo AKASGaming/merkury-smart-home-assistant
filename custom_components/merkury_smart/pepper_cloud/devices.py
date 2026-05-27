@@ -102,10 +102,55 @@ def parse_color_temp(device: dict[str, Any]) -> int | None:
     return None
 
 
+def parse_firmware_version(device: dict[str, Any]) -> str | None:
+    firmware = device.get("firmware")
+    if isinstance(firmware, dict) and firmware.get("version"):
+        return str(firmware["version"])
+    return None
+
+
+def parse_wifi_network(device: dict[str, Any]) -> str | None:
+    wifi = device.get("wifi")
+    if isinstance(wifi, dict):
+        name = wifi.get("wifiNetworkName") or wifi.get("wifi_network_name")
+        if name:
+            return str(name)
+    return None
+
+
+def parse_timezone(device: dict[str, Any]) -> str | None:
+    tz = device.get("timeZone") or device.get("timezone")
+    return str(tz) if tz else None
+
+
+def parse_last_paired_at(device: dict[str, Any]) -> str | None:
+    value = device.get("lastPairedAt") or device.get("last_paired_at")
+    return str(value) if value else None
+
+
+def parse_cloud_status(device: dict[str, Any]) -> str | None:
+    status = device.get("status")
+    return str(status) if status else None
+
+
+def _device_metadata(device: dict[str, Any]) -> dict[str, Any]:
+    """Fields from GET /account/devices/ beyond name/model/type."""
+
+    return {
+        "firmware_version": parse_firmware_version(device),
+        "wifi_network": parse_wifi_network(device),
+        "timezone": parse_timezone(device),
+        "last_paired_at": parse_last_paired_at(device),
+        "cloud_status": parse_cloud_status(device),
+        "external_device_id": device.get("deviceId") or device.get("device_id"),
+    }
+
+
 def normalize_device_state(device: dict[str, Any]) -> dict[str, Any]:
     """Convert a PepperAccountDevice payload into coordinator-friendly state."""
 
     power = parse_power_state(device)
+    metadata = _device_metadata(device)
     return {
         "name": device.get("name"),
         "model": device.get("model"),
@@ -115,6 +160,7 @@ def normalize_device_state(device: dict[str, Any]) -> dict[str, Any]:
         "power_on": power,
         "brightness": parse_brightness(device),
         "color_temp": parse_color_temp(device),
+        **metadata,
         "raw": device,
     }
 
@@ -128,5 +174,5 @@ def build_discovered_entry(device: dict[str, Any]) -> dict[str, Any]:
         "model": device.get("model"),
         "device_type": _device_type(device) or None,
         "provider": device.get("provider"),
-        "external_device_id": device.get("deviceId"),
+        **_device_metadata(device),
     }

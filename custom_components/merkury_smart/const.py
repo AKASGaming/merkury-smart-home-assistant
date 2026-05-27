@@ -21,6 +21,11 @@ CONF_MODEL: Final = "model"
 CONF_DEVICE_TYPE: Final = "device_type"
 CONF_PROVIDER: Final = "provider"
 CONF_EXTERNAL_DEVICE_ID: Final = "external_device_id"
+CONF_FIRMWARE_VERSION: Final = "firmware_version"
+CONF_WIFI_NETWORK: Final = "wifi_network"
+CONF_TIMEZONE: Final = "timezone"
+CONF_LAST_PAIRED_AT: Final = "last_paired_at"
+CONF_CLOUD_STATUS: Final = "cloud_status"
 
 DEFAULT_BRAND: Final = "geeni"
 
