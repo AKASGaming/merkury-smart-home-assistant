@@ -1,10 +1,31 @@
-# Merkury Smart for Home Assistant
+<p align="center">
+  <img
+    src="https://raw.githubusercontent.com/AKASGaming/merkury-smart-home-assistant/main/brand/icon.png"
+    alt="Merkury Smart"
+    width="220"
+  />
+</p>
 
-[![GitHub](https://img.shields.io/github/stars/AKASGaming/merkury-smart-home-assistant?style=social)](https://github.com/AKASGaming/merkury-smart-home-assistant)
+<h1 align="center">Merkury Smart for Home Assistant</h1>
 
-Home Assistant custom integration for **[Merkury Smart](https://www.merkurysmart.com/)** devices — the app-backed cloud path that actually works for current Merkury accounts.
+<p align="center">
+  <a href="https://github.com/AKASGaming/merkury-smart-home-assistant/releases">
+    <img src="https://img.shields.io/github/v/release/AKASGaming/merkury-smart-home-assistant?label=release" alt="Latest release" />
+  </a>
+  <a href="https://github.com/AKASGaming/merkury-smart-home-assistant/stargazers">
+    <img src="https://img.shields.io/github/stars/AKASGaming/merkury-smart-home-assistant?style=social" alt="GitHub stars" />
+  </a>
+</p>
 
-Under the hood, Merkury Smart uses the **[Pepper OS](https://pepperos.io)** cloud API (`api.pepperos.io`). The same API powers the **Geeni** app and other Pepper-backed brands, so this integration can work for any account on that cloud — not just Merkury-labeled hardware.
+<p align="center">
+  Home Assistant custom integration for <strong><a href="https://www.merkurysmart.com/">Merkury Smart</a></strong> devices — the app-backed cloud path that works for current Merkury accounts.
+</p>
+
+<p align="center">
+  Powered by the <a href="https://pepperos.io">Pepper OS</a> cloud (<code>api.pepperos.io</code>) — same backend as <strong>Geeni</strong> and other Pepper brands.
+</p>
+
+---
 
 ## Why this exists
 
@@ -30,9 +51,23 @@ Other Merkury / Geeni plugs, bulbs, and strips on the same Pepper cloud should d
 
 ## Install in Home Assistant
 
-### Option A — Copy from this repo (recommended for testing)
+Requires **Home Assistant 2024.1+** (brand icons in the UI need **2026.3+** — see [docs/BRANDING.md](docs/BRANDING.md)).
 
-1. **Download or clone** this repository:
+### Option A — HACS (recommended)
+
+1. HACS → Integrations → ⋮ → **Custom repositories**
+2. Add `https://github.com/AKASGaming/merkury-smart-home-assistant` as type **Integration**
+3. Search **Merkury Smart**, install, and **restart Home Assistant**
+4. Settings → Devices & Services → **Add Integration** → **Merkury Smart**
+5. Sign in with your **Merkury Smart email and password** (same as the app)
+6. Leave **brand** as **`geeni`** (required for Merkury Smart accounts on Pepper OS)
+7. Choose **Production** for the cloud environment
+
+HACS uses [GitHub Releases](https://github.com/AKASGaming/merkury-smart-home-assistant/releases) for version numbers. The release tag (e.g. `v0.4.0`) matches `version` in `custom_components/merkury_smart/manifest.json` (without the `v` prefix), which is what Home Assistant shows under **Settings → Updates**.
+
+### Option B — Manual copy
+
+1. **Download** the [latest release](https://github.com/AKASGaming/merkury-smart-home-assistant/releases/latest) or clone this repository:
    ```bash
    git clone https://github.com/AKASGaming/merkury-smart-home-assistant.git
    ```
@@ -40,22 +75,12 @@ Other Merkury / Geeni plugs, bulbs, and strips on the same Pepper cloud should d
    ```text
    config/custom_components/merkury_smart/
    ```
-   Copy everything inside `custom_components/merkury_smart/` from the repo — `__init__.py`, `manifest.json`, `brand/`, `pepper_cloud/`, etc.
-3. **Restart Home Assistant** (Settings → System → Restart).
-4. **Add the integration:** Settings → Devices & Services → **Add Integration** → search **Merkury Smart**.
-5. Sign in with your **Merkury Smart email and password** (same as the app).
-6. Leave **brand** as **`geeni`** (required for Merkury Smart accounts on Pepper OS).
-7. Choose **Production** for the cloud environment.
+   Include `__init__.py`, `manifest.json`, `brand/`, `pepper_cloud/`, and the rest of the package.
+3. **Restart Home Assistant**, then add the integration as in steps 4–7 above.
 
 Home Assistant installs `httpx[http2]` automatically from `manifest.json` on first load.
 
-### Option B — HACS (manual custom repository)
-
-1. HACS → Integrations → ⋮ → **Custom repositories**
-2. Add `https://github.com/AKASGaming/merkury-smart-home-assistant` as type **Integration**
-3. Search **Merkury Smart**, install, restart HA, then add the integration as above.
-
-**Icons:** If the Merkury icon appears under **Integrations** but not in the HACS store or **Updates** list, your install is fine — see [docs/BRANDING.md](docs/BRANDING.md) (known HACS + CDN limitation for custom integrations on HA 2026.3+).
+**Icons:** If the Merkury icon appears under **Integrations** but not in the HACS store or **Updates** list, your install is fine — see [docs/BRANDING.md](docs/BRANDING.md).
 
 ### After setup
 
@@ -92,6 +117,16 @@ Anything listed in the Merkury Smart or Geeni app under the same account should 
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/PEPPER_CLOUD_API.md](docs/PEPPER_CLOUD_API.md).
 
+## Releases and versioning
+
+| What | Where |
+| ---- | ----- |
+| Human-facing version | [GitHub Releases](https://github.com/AKASGaming/merkury-smart-home-assistant/releases) (`v0.4.0`, …) |
+| Home Assistant / HACS | `custom_components/merkury_smart/manifest.json` → `"version": "0.4.0"` (no `v`) |
+| Updates card in HA | Shown when HACS is installed and a newer **release** exists |
+
+New versions are published as **GitHub Releases** (not tags alone). Pushing a tag matching `manifest.json` triggers the [release workflow](.github/workflows/release.yml).
+
 ## Project status
 
 | Phase | Goal | Status |
@@ -101,6 +136,23 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/PEPPER_CLOUD_API.md](
 | 2 | Cloud switch/light entities | Done |
 | 3 | Brightness/color via settings API | Planned |
 | 4 | Local LAN fallback | Research |
+
+## Credits and acknowledgements
+
+This integration was reverse-engineered from the **Merkury Smart** Android app (`com.merkury.geeni`) and the public **Pepper OS** API. Thanks to the projects and communities that made that possible:
+
+| Project | Role |
+| ------- | ---- |
+| [PCAPdroid](https://github.com/emanuele-f/PCAPdroid) | On-device traffic capture; TLS export for API discovery |
+| [apk-mitm](https://github.com/shroudedcode/apk-mitm) | Patching the Merkury Smart APK for HTTPS inspection |
+| [mitmproxy](https://mitmproxy.org/) | Decrypting and documenting `api.pepperos.io` requests |
+| Android **logcat** | Login flow ordering (`byToken` before signed routes) |
+| Decompiled **Pepper SDK** (Merkury Smart APK) | Endpoint paths, models, and SigV4 signing behavior |
+| [httpx](https://www.python-httpx.org/) / [h2](https://github.com/python-hyper/h2) | HTTP/2 client used by the integration |
+| [Home Assistant](https://www.home-assistant.io/) | Platform and [custom integration](https://developers.home-assistant.io/docs/creating_integration_file_structure/) APIs |
+| [HACS](https://hacs.xyz/) | Distribution and update discovery via GitHub Releases |
+
+Related integrations that informed the approach: [eufy_security](https://github.com/fuatakgun/eufy_security) (app-style cloud mimic) and community Tuya/Pepper research threads.
 
 ## License
 
