@@ -183,10 +183,6 @@ class MerkuryOptionsFlowHandler(config_entries.OptionsFlow):
                 }
                 for item in discovered
             ]
-            self.hass.config_entries.async_update_entry(
-                self._config_entry,
-                data={**self._config_entry.data, CONF_DEVICES: devices},
-            )
             return self.async_create_entry(title="", data={CONF_DEVICES: devices})
 
         return self.async_show_form(

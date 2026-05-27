@@ -392,22 +392,14 @@ class PepperCloudClient:
         device_id: str,
         on: bool,
         *,
-        provider: str | None = None,
-        external_device_id: str | None = None,
         email: str | None = None,
         password: str | None = None,
     ) -> None:
-        command = CMD_POWER_ON if on else CMD_POWER_OFF
-        path = f"/account/devices/{device_id}/settings/{command}"
-        body: dict[str, str] = {"valueJson": "1" if on else "0"}
-        if provider:
-            body["provider"] = str(provider)
-        if external_device_id:
-            body["external_device_id"] = str(external_device_id)
+        path = f"/account/devices/{device_id}/settings/{CMD_POWER_ON}"
         await self._signed_request(
             "PUT",
             path,
-            json_body=body,
+            json_body={"valueJson": "1" if on else "0"},
             email=email,
             password=password,
         )

@@ -10,13 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .cloud import MerkuryCloudClient
-from .const import (
-    CONF_DEVICE_ID,
-    CONF_EXTERNAL_DEVICE_ID,
-    CONF_PROVIDER,
-    DOMAIN,
-    UPDATE_INTERVAL_SECONDS,
-)
+from .const import CONF_DEVICE_ID, DOMAIN, UPDATE_INTERVAL_SECONDS
 from .helpers import get_entry_devices
 
 _LOGGER = logging.getLogger(__name__)
@@ -51,22 +45,13 @@ class MerkuryCoordinator(DataUpdateCoordinator[dict[str, dict]]):
             _LOGGER.debug("Update failed: %s", err)
             raise UpdateFailed(str(err)) from err
 
-    def _device_meta(self, device_id: str) -> dict:
-        for device in get_entry_devices(self.entry):
-            if device.get(CONF_DEVICE_ID) == device_id:
-                return device
-        return {}
-
     async def set_power(self, device_id: str, on: bool) -> None:
-        state = self.data.get(device_id, {}) if self.data else {}
-        raw = state.get("raw") if isinstance(state.get("raw"), dict) else {}
-        meta = self._device_meta(device_id)
-        await self.client.set_power(
-            device_id,
-            on,
-            provider=raw.get("provider") or meta.get(CONF_PROVIDER),
-            external_device_id=raw.get("deviceId") or meta.get(CONF_EXTERNAL_DEVICE_ID),
-        )
+        _LOGGER.debug("set_power device_id=%s on=%s", device_id, on)
+        try:
+            await self.client.set_power(device_id, on)
+        except Exception:
+            _LOGGER.exception("set_power failed for %s", device_id)
+            raise
 
     async def async_shutdown(self) -> None:
         await self.client.close()
