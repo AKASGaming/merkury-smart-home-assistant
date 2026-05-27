@@ -97,14 +97,36 @@ Returns `PepperAccountDevice` objects with fields such as:
 
 ## Control (plugs and lights)
 
+### Power on/off
+
+The Merkury Smart app uses **one** settings path for both directions:
+
 ```http
 PUT /account/devices/{pepperDeviceId}/settings/powerStateOn/
-PUT /account/devices/{pepperDeviceId}/settings/powerStateOff/
+Content-Type: application/json
 
-Body: JSON object (app sends `PepperUpdateDeviceSettings`; `{}` works for on/off toggles).
+{"valueJson":"1"}   # on
+{"valueJson":"0"}   # off
 ```
 
-Empty body. Commands match activity types in the Merkury Smart app SDK.
+Response: `{"status":"success"}`
+
+`powerStateOff` exists in the SDK but was not observed in recent app traffic for MI-WW134 plugs; this integration follows the app and always uses `powerStateOn` with `valueJson` `"1"` or `"0"`.
+
+### Restart
+
+```http
+PUT /account/devices/{pepperDeviceId}/command/Restart/
+Content-Type: application/json
+
+null
+```
+
+Response: bare JSON `true` (HTTP 200). That indicates the **API accepted** the command, not that the device rebooted. Some plug models (e.g. MI-WW134-199W-B) may ignore it; cameras and other types may behave differently.
+
+The Home Assistant integration exposes this as a **Restart** button on each switch/light device.
+
+**Polling caveat:** The integration polls about every 30 seconds. Many plugs reboot faster than that, so Home Assistant often **will not** show the device as `unavailable` during a restart—you will not see a brief offline blip unless the reboot lasts longer than a poll interval or you refresh state another way.
 
 ## MI-WW334 smart plug
 

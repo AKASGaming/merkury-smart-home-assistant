@@ -24,6 +24,13 @@
       "already_configured": "This account is already configured."
     }
   },
+  "entity": {
+    "button": {
+      "restart": {
+        "name": "Restart"
+      }
+    }
+  },
   "options": {
     "step": {
       "init": {

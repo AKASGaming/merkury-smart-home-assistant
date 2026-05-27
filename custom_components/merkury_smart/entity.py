@@ -74,3 +74,8 @@ class MerkuryEntity(CoordinatorEntity[MerkuryCoordinator]):
         """Turn device on/off with optimistic coordinator update."""
 
         await self.coordinator.set_power(self._device_id, on)
+
+    async def async_restart(self) -> None:
+        """Send Pepper cloud restart command for this device."""
+
+        await self.coordinator.restart_device(self._device_id)

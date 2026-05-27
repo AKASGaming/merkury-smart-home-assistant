@@ -84,9 +84,9 @@ Home Assistant installs `httpx[http2]` automatically from `manifest.json` on fir
 
 ### After setup
 
-- Devices from your Merkury Smart account appear as **switch** (plugs) or **light** entities.
+- Devices from your Merkury Smart account appear as **switch** (plugs) or **light** entities, plus a **Restart** button per device (cloud command; see [docs/PEPPER_CLOUD_API.md](docs/PEPPER_CLOUD_API.md)).
 - Use **Configure → Re-sync devices** on the integration card to refresh the device list.
-- Poll interval defaults to cloud polling; state updates when HA refreshes the coordinator.
+- Poll interval defaults to cloud polling (about 30s). Fast plug reboots often finish before the next poll, so the Restart button may not show a brief `unavailable` state in Home Assistant.
 
 ## Command-line test (optional)
 
@@ -103,8 +103,8 @@ Add `--diagnose` to print signed-request probes to stderr.
 
 | Type | Examples | Control today |
 | ---- | -------- | ------------- |
-| Smart plug | MI-WW134-199W-B, MI-WW334, MI-WW102 | On/off |
-| Bulbs / strips | Merkury / Geeni lights | On/off (brightness read; dimming planned) |
+| Smart plug | MI-WW134-199W-B, MI-WW334, MI-WW102 | On/off, Restart button |
+| Bulbs / strips | Merkury / Geeni lights | On/off, Restart button (brightness read; dimming planned) |
 
 Anything listed in the Merkury Smart or Geeni app under the same account should be discoverable via `GET /account/devices/`.
 
@@ -113,7 +113,7 @@ Anything listed in the Merkury Smart or Geeni app under the same account should 
 - **Cloud:** Pepper OS `api.pepperos.io` (production)
 - **Auth:** `POST /authentication/byEmail` → JWT `peppertoken` + temporary AWS credentials
 - **Transport:** HTTP/2 required for signed routes (large auth headers); uses `httpx`
-- **Control:** `PUT /account/devices/{id}/settings/powerStateOn/` with `{"valueJson":"1"|"0"}`
+- **Control:** `PUT /account/devices/{id}/settings/powerStateOn/` with `{"valueJson":"1"|"0"}`; optional `PUT .../command/Restart/` (Restart button)
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/PEPPER_CLOUD_API.md](docs/PEPPER_CLOUD_API.md).
 

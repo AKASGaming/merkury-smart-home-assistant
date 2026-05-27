@@ -13,7 +13,7 @@ from typing import Any
 import httpx
 from yarl import URL
 
-from ..const import CMD_POWER_OFF, CMD_POWER_ON, DEFAULT_BRAND
+from ..const import CMD_POWER_OFF, CMD_POWER_ON, CMD_RESTART, DEFAULT_BRAND
 from .auth import (
     apply_login_response,
     extract_lr_token,
@@ -28,6 +28,9 @@ from .urls import DEFAULT_HOSTS
 _LOGGER = logging.getLogger(__name__)
 
 ENVIRONMENT_HOSTS = DEFAULT_HOSTS
+
+# Merkury app sends Content-Length: 4 with body `null` for command/Restart/.
+_JSON_NULL_BODY = object()
 DEFAULT_USER_AGENT = "okhttp/4.4.1"
 
 
@@ -266,7 +269,10 @@ class PepperCloudClient:
             "User-Agent": DEFAULT_USER_AGENT,
             "peppertoken": self._pepper_token,
         }
-        if json_body is not None:
+        if json_body is _JSON_NULL_BODY:
+            body = b"null"
+            headers["Content-Length"] = str(len(body))
+        elif json_body is not None:
             body = json.dumps(json_body).encode("utf-8")
             headers["Content-Length"] = str(len(body))
 
@@ -403,3 +409,22 @@ class PepperCloudClient:
             email=email,
             password=password,
         )
+
+    async def restart_device(
+        self,
+        device_id: str,
+        *,
+        email: str | None = None,
+        password: str | None = None,
+    ) -> bool:
+        """Ask Pepper to restart a device (cloud command; may be unsupported on some models)."""
+
+        path = f"/account/devices/{device_id}/command/{CMD_RESTART}"
+        result = await self._signed_request(
+            "PUT",
+            path,
+            json_body=_JSON_NULL_BODY,
+            email=email,
+            password=password,
+        )
+        return bool(result)

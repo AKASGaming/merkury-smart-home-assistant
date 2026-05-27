@@ -85,6 +85,13 @@ class MerkuryCloudClient:
             password=self.password,
         )
 
+    async def restart_device(self, device_id: str) -> bool:
+        return await self._client.restart_device(
+            device_id,
+            email=self.username,
+            password=self.password,
+        )
+
     @property
     def inner(self) -> PepperCloudClient:
         return self._client

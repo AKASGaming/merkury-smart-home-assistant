@@ -76,5 +76,17 @@ class MerkuryCoordinator(DataUpdateCoordinator[dict[str, dict]]):
         # Reconcile with cloud without blocking the UI toggle.
         self.hass.async_create_task(self.async_request_refresh())
 
+    async def restart_device(self, device_id: str) -> bool:
+        """Send cloud restart command. Does not change coordinator state (see docs)."""
+
+        _LOGGER.debug("restart_device device_id=%s", device_id)
+        try:
+            accepted = await self.client.restart_device(device_id)
+        except Exception:
+            _LOGGER.exception("restart_device failed for %s", device_id)
+            raise
+        self.hass.async_create_task(self.async_request_refresh())
+        return accepted
+
     async def async_shutdown(self) -> None:
         await self.client.close()

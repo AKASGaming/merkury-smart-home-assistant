@@ -1,0 +1,75 @@
+"""Merkury Smart button platform."""
+
+from __future__ import annotations
+
+from homeassistant.components.button import ButtonEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .config_flow import async_get_device_entries
+from .const import (
+    CONF_DEVICE_CLASS,
+    CONF_DEVICE_ID,
+    CONF_MODEL,
+    CONF_NAME,
+    DEVICE_CLASS_LIGHT,
+    DEVICE_CLASS_SWITCH,
+    DOMAIN,
+)
+from .coordinator import MerkuryCoordinator
+from .entity import MerkuryEntity
+
+_RESTART_DEVICE_CLASSES = frozenset({DEVICE_CLASS_SWITCH, DEVICE_CLASS_LIGHT})
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    coordinator: MerkuryCoordinator = hass.data[DOMAIN][entry.entry_id]
+    entities: list[MerkuryRestartButton] = []
+
+    for device in await async_get_device_entries(hass, entry):
+        if device.get(CONF_DEVICE_CLASS) not in _RESTART_DEVICE_CLASSES:
+            continue
+        entities.append(
+            MerkuryRestartButton(
+                coordinator=coordinator,
+                device_id=device[CONF_DEVICE_ID],
+                name=device[CONF_NAME],
+                model=device.get(CONF_MODEL),
+            )
+        )
+
+    async_add_entities(entities)
+
+
+class MerkuryRestartButton(MerkuryEntity, ButtonEntity):
+    """Cloud restart command for a Merkury plug, bulb, or similar device."""
+
+    _attr_icon = "mdi:restart"
+    _attr_name = "Restart"
+    _attr_translation_key = "restart"
+
+    def __init__(
+        self,
+        coordinator: MerkuryCoordinator,
+        device_id: str,
+        name: str,
+        *,
+        model: str | None = None,
+    ) -> None:
+        super().__init__(coordinator, device_id, name, model=model)
+        self._attr_unique_id = f"{device_id}_restart"
+
+    @property
+    def available(self) -> bool:
+        state = self.device_state
+        if state.get("online") is False:
+            return False
+        return super().available
+
+    async def async_press(self) -> None:
+        await self.async_restart()

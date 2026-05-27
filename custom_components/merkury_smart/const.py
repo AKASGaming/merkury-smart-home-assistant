@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 DOMAIN: Final = "merkury_smart"
-PLATFORMS: Final = ["light", "switch"]
+PLATFORMS: Final = ["button", "light", "switch"]
 
 # Account
 CONF_USERNAME: Final = "username"
@@ -42,6 +42,7 @@ ENVIRONMENTS: Final = {
 # Pepper device commands (from Merkury Smart app activity types)
 CMD_POWER_ON: Final = "powerStateOn"
 CMD_POWER_OFF: Final = "powerStateOff"
+CMD_RESTART: Final = "Restart"
 
 BRIGHTNESS_MIN: Final = 10
 BRIGHTNESS_MAX: Final = 1000
