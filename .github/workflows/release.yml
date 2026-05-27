@@ -27,7 +27,7 @@ jobs:
         id: changelog
         run: |
           TAG="${GITHUB_REF_NAME#v}"
-          BODY=$(python3 <<'PY'
+          BODY=$(python3 - "$TAG" <<'PY'
           import re
           import sys
 
@@ -44,7 +44,7 @@ jobs:
               sys.exit(1)
           print(body)
           PY
-          "$TAG")
+          )
           {
             echo "body<<EOF"
             echo "$BODY"
