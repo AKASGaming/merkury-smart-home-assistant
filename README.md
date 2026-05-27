@@ -40,7 +40,7 @@ Other Merkury / Geeni plugs, bulbs, and strips on the same Pepper cloud should d
    ```text
    config/custom_components/merkury_smart/
    ```
-   Copy everything inside `custom_components/merkury_smart/` from the repo — `__init__.py`, `manifest.json`, `pepper_cloud/`, etc.
+   Copy everything inside `custom_components/merkury_smart/` from the repo — `__init__.py`, `manifest.json`, `brand/`, `pepper_cloud/`, etc.
 3. **Restart Home Assistant** (Settings → System → Restart).
 4. **Add the integration:** Settings → Devices & Services → **Add Integration** → search **Merkury Smart**.
 5. Sign in with your **Merkury Smart email and password** (same as the app).
