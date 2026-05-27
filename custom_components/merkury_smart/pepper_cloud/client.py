@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import logging
@@ -89,7 +90,8 @@ class PepperCloudClient:
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
-            self._client = create_http_client()
+            # Build TLS context in a worker thread to avoid HA loop blocking warnings.
+            self._client = await asyncio.to_thread(create_http_client)
             self._owns_client = True
         return self._client
 
