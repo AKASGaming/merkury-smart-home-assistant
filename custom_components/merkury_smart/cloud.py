@@ -77,10 +77,19 @@ class MerkuryCloudClient:
             password=self.password,
         )
 
-    async def set_power(self, device_id: str, on: bool) -> None:
+    async def set_power(
+        self,
+        device_id: str,
+        on: bool,
+        *,
+        provider: str | None = None,
+        external_device_id: str | None = None,
+    ) -> None:
         await self._client.set_power(
             device_id,
             on,
+            provider=provider,
+            external_device_id=external_device_id,
             email=self.username,
             password=self.password,
         )

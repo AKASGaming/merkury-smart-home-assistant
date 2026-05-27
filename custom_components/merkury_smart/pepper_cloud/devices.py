@@ -49,7 +49,10 @@ def guess_device_class(device: dict[str, Any]) -> str:
     device_type = _device_type(device).lower()
     model = str(device.get("model") or "").lower()
 
-    if device.get("light"):
+    light = device.get("light")
+    if isinstance(light, dict) and light:
+        return DEVICE_CLASS_LIGHT
+    if light is True:
         return DEVICE_CLASS_LIGHT
 
     if any(token in device_type for token in _LIGHT_TYPES):
