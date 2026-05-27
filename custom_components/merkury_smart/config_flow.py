@@ -81,9 +81,9 @@ class MerkuryConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
             try:
                 self._discovered = await client.validate()
-                except PepperMfaRequiredError:
-                    errors["base"] = "mfa_required"
-                except PepperAuthError:
+            except PepperMfaRequiredError:
+                errors["base"] = "mfa_required"
+            except PepperAuthError:
                 errors["base"] = "invalid_auth"
             except PepperCloudError as err:
                 _LOGGER.error("Pepper cloud setup failed: %s", err)
