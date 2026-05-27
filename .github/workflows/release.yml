@@ -23,9 +23,37 @@ jobs:
             exit 1
           fi
 
+      - name: Extract changelog for release
+        id: changelog
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          BODY=$(python3 <<'PY'
+          import re
+          import sys
+
+          version = sys.argv[1]
+          text = open("CHANGELOG.md", encoding="utf-8").read()
+          pattern = rf"^## \[{re.escape(version)}\][^\n]*\n(.*?)(?=^## \[|\Z)"
+          match = re.search(pattern, text, re.MULTILINE | re.DOTALL)
+          if not match:
+              print(f"ERROR: No ## [{version}] section in CHANGELOG.md", file=sys.stderr)
+              sys.exit(1)
+          body = match.group(1).strip()
+          if not body:
+              print(f"ERROR: Changelog section for {version} is empty", file=sys.stderr)
+              sys.exit(1)
+          print(body)
+          PY
+          "$TAG")
+          {
+            echo "body<<EOF"
+            echo "$BODY"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.body }}
           files: |
             brand/icon.png

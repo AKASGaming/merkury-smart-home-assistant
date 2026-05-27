@@ -125,7 +125,9 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/PEPPER_CLOUD_API.md](
 | Home Assistant / HACS | `custom_components/merkury_smart/manifest.json` → `"version": "0.4.0"` (no `v`) |
 | Updates card in HA | Shown when HACS is installed and a newer **release** exists |
 
-New versions are published as **GitHub Releases** (not tags alone). Pushing a tag matching `manifest.json` triggers the [release workflow](.github/workflows/release.yml).
+New versions are published as **GitHub Releases** (not tags alone). Pushing a tag matching `manifest.json` triggers the [release workflow](.github/workflows/release.yml), which publishes the matching section from [CHANGELOG.md](CHANGELOG.md) as the release notes.
+
+**Releasing a new version:** update `CHANGELOG.md` (move notes from `[Unreleased]` into `## [x.y.z] - date`), bump `manifest.json`, commit, then `git tag vX.Y.Z` and `git push origin main --tags`.
 
 ## Project status
 
