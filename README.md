@@ -55,6 +55,8 @@ Home Assistant installs `httpx[http2]` automatically from `manifest.json` on fir
 2. Add `https://github.com/AKASGaming/merkury-smart-home-assistant` as type **Integration**
 3. Search **Merkury Smart**, install, restart HA, then add the integration as above.
 
+**Icons:** If the Merkury icon appears under **Integrations** but not in the HACS store or **Updates** list, your install is fine — see [docs/BRANDING.md](docs/BRANDING.md) (known HACS + CDN limitation for custom integrations on HA 2026.3+).
+
 ### After setup
 
 - Devices from your Merkury Smart account appear as **switch** (plugs) or **light** entities.
