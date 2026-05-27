@@ -6,13 +6,18 @@ import base64
 import json
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 import httpx
 from yarl import URL
 
 from ..const import CMD_POWER_OFF, CMD_POWER_ON, DEFAULT_BRAND
-from .auth import apply_login_response, extract_lr_token
+from .auth import (
+    apply_login_response,
+    extract_lr_token,
+    session_is_valid,
+)
 from .devices import build_discovered_entry, command_device_id, normalize_device_state
 from .exceptions import PepperApiError, PepperAuthError, PepperCloudError, PepperSessionError
 from .signer import ensure_trailing_slash, sign_request
@@ -31,6 +36,27 @@ class AwsSession:
     secret_access_key: str
     session_token: str
     region: str
+    expires_at: datetime | None = None
+
+
+def _is_auth_failure(exc: Exception) -> bool:
+    if isinstance(exc, PepperSessionError):
+        return True
+    if isinstance(exc, PepperApiError):
+        if exc.status_code in {401, 403}:
+            return True
+        message = str(exc).lower()
+        return any(
+            token in message
+            for token in (
+                "expired",
+                "signature",
+                "security token",
+                "unauthorized",
+                "invalidclienttokenid",
+            )
+        )
+    return False
 
 
 class PepperCloudClient:
@@ -163,9 +189,60 @@ class PepperCloudClient:
             secret_access_key=session.secret_access_key,
             session_token=session.session_token,
             region=session.region,
+            expires_at=session.expires_at,
+        )
+
+    def _session_valid(self) -> bool:
+        return bool(
+            self._pepper_token
+            and self._aws
+            and session_is_valid(self._aws.expires_at)
+        )
+
+    async def ensure_session(self, email: str, password: str) -> None:
+        """Refresh AWS/peppertoken credentials before they expire (~15 minutes)."""
+
+        if self._session_valid():
+            return
+
+        if self._lr_token:
+            try:
+                await self._refresh_session_by_token(self.base_url, self._lr_token)
+                if self._session_valid():
+                    _LOGGER.debug("Pepper session refreshed via byToken")
+                    return
+            except (PepperApiError, PepperCloudError) as err:
+                _LOGGER.debug("byToken refresh failed, using byEmail: %s", err)
+
+        await self.login(email, password)
+        _LOGGER.debug(
+            "Pepper session refreshed via byEmail (expires %s)",
+            self._aws.expires_at if self._aws else "unknown",
         )
 
     async def _signed_request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json_body: Any | None = None,
+        email: str | None = None,
+        password: str | None = None,
+        _retried: bool = False,
+    ) -> Any:
+        if email and password:
+            await self.ensure_session(email, password)
+
+        try:
+            return await self._execute_signed_request(method, path, json_body=json_body)
+        except Exception as err:
+            if _retried or not email or not password or not _is_auth_failure(err):
+                raise
+            _LOGGER.debug("Signed request auth failure, re-logging in: %s", err)
+            await self.login(email, password)
+            return await self._execute_signed_request(method, path, json_body=json_body)
+
+    async def _execute_signed_request(
         self,
         method: str,
         path: str,
@@ -211,6 +288,8 @@ class PepperCloudClient:
         text = response.text
         if response.status_code == 401:
             raise PepperSessionError("Session expired or unauthorized")
+        if response.status_code == 403:
+            raise PepperSessionError(text or "Session expired or forbidden")
         if response.status_code >= 400:
             raise PepperApiError(
                 response.status_code, text or response.reason_phrase
@@ -220,23 +299,66 @@ class PepperCloudClient:
             return None
         return response.json()
 
-    async def list_devices(self) -> list[dict[str, Any]]:
-        result = await self._signed_request("GET", "/account/devices")
+    async def list_devices(
+        self,
+        *,
+        email: str | None = None,
+        password: str | None = None,
+    ) -> list[dict[str, Any]]:
+        result = await self._signed_request(
+            "GET",
+            "/account/devices",
+            email=email,
+            password=password,
+        )
         if not isinstance(result, list):
             return []
         return [item for item in result if isinstance(item, dict)]
 
-    async def discover_devices(self) -> list[dict[str, Any]]:
+    async def poll_device_states(
+        self,
+        device_ids: list[str],
+        *,
+        email: str,
+        password: str,
+    ) -> dict[str, dict[str, Any]]:
+        """Fetch current state for devices with a single list_devices call."""
+
+        states: dict[str, dict[str, Any]] = {}
+        wanted = set(device_ids)
+        for device in await self.list_devices(email=email, password=password):
+            dev_id = command_device_id(device)
+            if dev_id in wanted:
+                states[dev_id] = normalize_device_state(device)
+        for dev_id in device_ids:
+            states.setdefault(
+                dev_id,
+                {"power_on": None, "online": False, "raw": {}},
+            )
+        return states
+
+    async def discover_devices(
+        self,
+        *,
+        email: str | None = None,
+        password: str | None = None,
+    ) -> list[dict[str, Any]]:
         discovered: list[dict[str, Any]] = []
-        for device in await self.list_devices():
+        for device in await self.list_devices(email=email, password=password):
             dev_id = command_device_id(device)
             if not dev_id:
                 continue
             discovered.append(build_discovered_entry(device))
         return discovered
 
-    async def get_device_state(self, device_id: str) -> dict[str, Any]:
-        for device in await self.list_devices():
+    async def get_device_state(
+        self,
+        device_id: str,
+        *,
+        email: str | None = None,
+        password: str | None = None,
+    ) -> dict[str, Any]:
+        for device in await self.list_devices(email=email, password=password):
             if command_device_id(device) == device_id:
                 return normalize_device_state(device)
         return {"power_on": None, "online": False, "raw": {}}
@@ -247,18 +369,35 @@ class PepperCloudClient:
         command: str,
         *,
         value_json: str | None = None,
+        email: str | None = None,
+        password: str | None = None,
     ) -> None:
         path = f"/account/devices/{device_id}/settings/{command}"
         if value_json is None and command in {CMD_POWER_ON, CMD_POWER_OFF}:
             path = f"/account/devices/{device_id}/settings/{CMD_POWER_ON}"
             value_json = "1" if command == CMD_POWER_ON else "0"
         body = {"valueJson": value_json} if value_json is not None else {}
-        await self._signed_request("PUT", path, json_body=body)
+        await self._signed_request(
+            "PUT",
+            path,
+            json_body=body,
+            email=email,
+            password=password,
+        )
 
-    async def set_power(self, device_id: str, on: bool) -> None:
+    async def set_power(
+        self,
+        device_id: str,
+        on: bool,
+        *,
+        email: str | None = None,
+        password: str | None = None,
+    ) -> None:
         path = f"/account/devices/{device_id}/settings/{CMD_POWER_ON}"
         await self._signed_request(
             "PUT",
             path,
             json_body={"valueJson": "1" if on else "0"},
+            email=email,
+            password=password,
         )

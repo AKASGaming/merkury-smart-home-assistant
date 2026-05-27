@@ -49,18 +49,41 @@ class MerkuryCloudClient:
     async def login(self) -> None:
         await self._client.login(self.username, self.password)
 
+    async def ensure_session(self) -> None:
+        """Refresh credentials before AWS temporary keys expire (~15 minutes)."""
+        await self._client.ensure_session(self.username, self.password)
+
     async def validate(self) -> list[dict[str, Any]]:
         await self.login()
         return await self.discover_devices()
 
     async def discover_devices(self) -> list[dict[str, Any]]:
-        return await self._client.discover_devices()
+        return await self._client.discover_devices(
+            email=self.username,
+            password=self.password,
+        )
+
+    async def poll_device_states(self, device_ids: list[str]) -> dict[str, dict[str, Any]]:
+        return await self._client.poll_device_states(
+            device_ids,
+            email=self.username,
+            password=self.password,
+        )
 
     async def get_device_state(self, device_id: str) -> dict[str, Any]:
-        return await self._client.get_device_state(device_id)
+        return await self._client.get_device_state(
+            device_id,
+            email=self.username,
+            password=self.password,
+        )
 
     async def set_power(self, device_id: str, on: bool) -> None:
-        await self._client.set_power(device_id, on)
+        await self._client.set_power(
+            device_id,
+            on,
+            email=self.username,
+            password=self.password,
+        )
 
     @property
     def inner(self) -> PepperCloudClient:

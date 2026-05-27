@@ -5,9 +5,12 @@ from __future__ import annotations
 import base64
 import json
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from .exceptions import PepperCloudError, PepperMfaRequiredError
+
+SESSION_REFRESH_MARGIN = timedelta(minutes=2)
 
 
 @dataclass(slots=True)
@@ -17,6 +20,7 @@ class LoginSession:
     secret_access_key: str
     session_token: str
     region: str
+    expires_at: datetime | None = None
 
 
 def _access_key_hint(aws: dict[str, Any]) -> str | None:
@@ -29,6 +33,30 @@ def _access_key_hint(aws: dict[str, Any]) -> str | None:
     if len(text) <= 8:
         return text
     return f"{text[:4]}…{text[-4:]}"
+
+
+def parse_aws_expiration(aws: dict[str, Any]) -> datetime | None:
+    """Parse Cognito temporary credential expiry from a login payload."""
+
+    raw = _pick(aws, "Expiration", "expiration")
+    if not raw:
+        return None
+    text = str(raw).replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed
+
+
+def session_is_valid(expires_at: datetime | None, *, margin: timedelta = SESSION_REFRESH_MARGIN) -> bool:
+    """Return True if AWS session credentials are still usable."""
+
+    if expires_at is None:
+        return True
+    return datetime.now(UTC) < expires_at - margin
 
 
 def _pick(mapping: dict[str, Any], *keys: str) -> Any:
@@ -176,6 +204,7 @@ def parse_login_response(data: dict[str, Any]) -> LoginSession:
         secret_access_key=str(secret_key),
         session_token=str(session_token),
         region=str(region),
+        expires_at=parse_aws_expiration(aws),
     )
 
 

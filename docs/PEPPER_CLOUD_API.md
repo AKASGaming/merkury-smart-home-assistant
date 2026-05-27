@@ -59,6 +59,10 @@ Response fields used:
 - `lrToken` → `byToken` refresh only
 - `pepperUser.awsUserCredentials` → temporary AWS keys for SigV4 signing
 
+### Session lifetime
+
+AWS temporary credentials from login include an `Expiration` timestamp (typically **~15 minutes**, not one hour). When they expire, signed API calls return **403** (not 401). The integration refreshes proactively (2 minutes before expiry) via `byToken` when possible, falling back to `byEmail`.
+
 ## Signed requests
 
 Service: `execute-api`  
@@ -107,7 +111,7 @@ Discovered as a switch entity. On/off uses `powerStateOn` / `powerStateOff`. The
 | ----- | --- |
 | `invalid_auth` | Wrong email/password, or wrong brand (use `geeni` for Merkury Smart) |
 | `cannot_connect` | Wrong environment; try `production` |
-| HTTP **403** on signed routes | SigV4 or AWS session problem |
+| HTTP **403** on signed routes | Expired AWS session (~15 min) or SigV4 problem; integration re-authenticates automatically |
 | HTTP **502** on `GET /account/devices/` after login | SigV4 passed (unsigned → 403). Backend error after IAM auth—not a wrong password. Regional host usually does not fix it. Compare a live app request via logcat/mitmproxy |
 | HTTP **500** `No token supplied` on some routes | Different authorizer; ensure `peppertoken` header matches login `token` |
 | Entity does not toggle | Capture app traffic — command strings may differ for some models |
